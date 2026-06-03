@@ -2,10 +2,13 @@
 # init-project.ps1
 # Init a new project workspace from the Sahagan Agent Template
 #
-# Usage:
-#   .\scripts\init-project.ps1 -ProjectName "my-project"
-#   .\scripts\init-project.ps1 -ProjectName "my-project" -RepoUrl "https://github.com/user/repo.git"
-#   .\scripts\init-project.ps1 -ProjectName "my-project" -RepoUrl "https://github.com/user/repo.git" -OutputDir "D:\projects"
+# After bootstrap, run from ANY folder:
+#   init-project my-project
+#   init-project my-project https://github.com/user/repo.git
+#   init-project my-project https://github.com/user/repo.git D:\projects
+#
+# One-time setup (run once, then use anywhere):
+#   irm https://raw.githubusercontent.com/Sahagan/sahagan_agent_template/main/scripts/bootstrap.ps1 | iex
 
 param(
     [Parameter(Mandatory=$true)]
@@ -15,7 +18,7 @@ param(
     [string]$RepoUrl = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$OutputDir = "",
+    [string]$OutputDir = $PWD,
 
     [Parameter(Mandatory=$false)]
     [string]$TemplateRepo = "https://github.com/Sahagan/sahagan_agent_template.git",
@@ -26,11 +29,6 @@ param(
 # ─── Config ───────────────────────────────────────────────────────────────────
 
 $ErrorActionPreference = "Stop"
-
-# Resolve output directory
-if ($OutputDir -eq "") {
-    $OutputDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-}
 
 $ProjectDir = Join-Path $OutputDir $ProjectName
 

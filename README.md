@@ -21,32 +21,61 @@ Every session starts with ARIA. ARIA delegates to Kai, Nova, or Sage via the Age
 
 ## Quick Start — New Project
 
-### Windows (PowerShell)
+### Step 1: One-time setup (ทำครั้งเดียว)
 
+**Windows (PowerShell):**
 ```powershell
-# Clone template once (to use the scripts)
-git clone https://github.com/Sahagan/sahagan_agent_template.git
-cd sahagan_agent_template
-
-# Init a new project
-.\scripts\init-project.ps1 -ProjectName "my-project"
-
-# With an existing project repo
-.\scripts\init-project.ps1 -ProjectName "my-project" -RepoUrl "https://github.com/user/repo.git"
-
-# Custom output location
-.\scripts\init-project.ps1 -ProjectName "my-project" -RepoUrl "https://github.com/user/repo.git" -OutputDir "D:\projects"
+# Run once — installs init-project as a global command
+irm https://raw.githubusercontent.com/Sahagan/sahagan_agent_template/main/scripts/bootstrap.ps1 | iex
 ```
 
-### Mac / Linux (bash)
-
+**Mac / Linux:**
 ```bash
-# Clone template once
+# Run once — saves init-project.sh to ~/bin/
+curl -fsSL https://raw.githubusercontent.com/Sahagan/sahagan_agent_template/main/scripts/bootstrap.sh | bash
+```
+
+---
+
+### Step 2: Create new project (ทำทุกครั้งที่มี project ใหม่)
+
+หลัง bootstrap แล้ว — run ได้จากทุกที่ เปิด terminal ใหม่แล้วรันเลย:
+
+**Windows:**
+```powershell
+# จาก folder ไหนก็ได้ — สร้าง project ใน current directory
+init-project my-project
+init-project my-project https://github.com/user/repo.git
+
+# ระบุ output folder เอง
+init-project my-project https://github.com/user/repo.git D:\projects
+```
+
+**Mac / Linux:**
+```bash
+init-project my-project
+init-project my-project https://github.com/user/repo.git
+init-project my-project https://github.com/user/repo.git ~/projects
+```
+
+Script จะ: clone template → init fresh git → clone repo → เปิด VS Code อัตโนมัติ
+
+---
+
+### Alternative: ไม่อยากทำ bootstrap
+
+```powershell
+# Clone template แล้วรัน script ตรง ๆ
 git clone https://github.com/Sahagan/sahagan_agent_template.git
 cd sahagan_agent_template
+.\scripts\init-project.ps1 -ProjectName "my-project" -RepoUrl "https://github.com/user/repo.git"
+```
 
-# Init a new project
-bash scripts/init-project.sh my-project
+```bash
+git clone https://github.com/Sahagan/sahagan_agent_template.git
+cd sahagan_agent_template
+bash scripts/init-project.sh my-project https://github.com/user/repo.git
+```
 
 # With an existing project repo
 bash scripts/init-project.sh my-project https://github.com/user/repo.git
