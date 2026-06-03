@@ -9,20 +9,25 @@ One-line entries only. Max 200 lines. Read this at every session start.
 
 ## Workflow Patterns
 
-- (none yet — add as you discover effective patterns)
+- [feedback-claude-cli-spawning](feedback-claude-cli-spawning.md) — ใช้ `claude -p` + `--allowed-tools` แทน Agent tool เพื่อให้ Pixel AGENTS เห็น session แยก
+- [feedback-workspace-architecture](feedback-workspace-architecture.md) — ARIA ใน agent-template แยกจาก project, workspace เห็นทั้งคู่ผ่าน absolute path
 
 ## Project Context
 
-- (none yet — add active projects and their status)
+- [project-nuytoom-travel](project-nuytoom-travel.md) — Family Trip Planner, QA approved, รอ ANTHROPIC_API_KEY + deploy Vercel
 
 ## User Preferences
 
-- (none yet — add user-specific preferences as you learn them)
+- ใช้ Pixel AGENTS extension — agent ต้องเป็น OS process แยก (ไม่ใช่ Agent tool in-process)
+- Workspace pattern: agent-template + projects แยก folder ใน VS Code workspace
+- Project repos ต้อง pure — ไม่มี workflow/agent files ปน
 
 ## Lessons Learned
 
-- (none yet — add from session retrospectives)
+- Agent tool = in-process subagent → Pixel AGENTS เห็นเป็น session เดียว ❌
+- `claude -p "$(cat brief.md)" --allowed-tools "..."` = OS process แยก → ถูกต้อง ✅
+- ขาด `--allowed-tools` → agent ค้างรอ permission ทุก action ❌
 
 ---
 
-*Last updated: session init*
+*Last updated: 2026-06-03*
