@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # init-project.ps1 — Init a new project workspace from Sahagan Agent Template
 #
 # Usage (after bootstrap):
@@ -112,6 +112,7 @@ if (Test-Path $claudeMd) {
     Set-Content $claudeMd -Value ("<!-- Project: $ProjectName -->`n" + $content) -Encoding UTF8
 }
 
+$fence = '```'
 @"
 # Project: $ProjectName
 
@@ -123,26 +124,26 @@ $(if ($RepoUrl -ne "") { "- $RepoUrl" } else { "- (not set — add to projects/)
 
 ## Quick Start
 
-```
-Open this folder in VS Code → Claude Code → /session-start
-```
+$fence
+Open this folder in VS Code -> Claude Code -> /session-start
+$fence
 
 ## Structure
 
-```
+$fence
 $ProjectName/
-├── CLAUDE.md               ← ARIA entry point
-├── .claude/
-│   ├── agents/             ← Kai, Nova, Sage definitions
-│   └── skills/             ← /session-start, /assign, /new-session
-├── agents/                 ← Persona + memories per agent
-│   ├── orchestrator/
-│   ├── backend/
-│   ├── frontend/
-│   └── qa/
-├── _shared/                ← Session state, task log, decisions
-└── projects/               ← Your code lives here
-```
++-- CLAUDE.md               <- ARIA entry point
++-- .claude/
+|   +-- agents/             <- Kai, Nova, Sage definitions
+|   +-- skills/             <- /session-start, /assign, /new-session
++-- agents/                 <- Persona + memories per agent
+|   +-- orchestrator/
+|   +-- backend/
+|   +-- frontend/
+|   +-- qa/
++-- _shared/                <- Session state, task log, decisions
++-- projects/               <- Your code lives here
+$fence
 "@ | Set-Content (Join-Path $ProjectDir "PROJECT.md") -Encoding UTF8
 
 Write-Host "  [4/4] Workspace configured" -ForegroundColor Green
@@ -165,3 +166,4 @@ if ($codeAvailable -and -not $NoOpen) {
     Write-Host "  Opening VS Code..." -ForegroundColor DarkGray
     code $ProjectDir
 }
+
