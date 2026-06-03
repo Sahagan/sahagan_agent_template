@@ -70,31 +70,48 @@
 ```
 User request
     ↓
-ARIA: decompose → plan → assign
+ARIA: decompose → plan → assign (/assign)
     ↓
-Agent tool: spawn backend | frontend | qa
+เขียน brief → _shared/briefs/[agent]-[id].md
     ↓
-Agent works → returns result
+รัน claude CLI ผ่าน Bash tool:
+  Sequential: claude -p "$(cat brief.md)" --allowed-tools "..."
+  Parallel:   claude -p "..." & + wait $PID
+    ↓
+Agent ทำงาน → stream output กลับมา
+(Pixel AGENTS เห็นเป็น session แยก ✓)
     ↓
 ARIA: review → gate check
     ↓
 approve / request_changes / escalate
-    ↓
-Handoff ถ้าต้องส่งต่อ agent อื่น
 ```
 
 ---
 
-## Sub-Agents (`.claude/agents/`)
+## Agent Spawning — CLI Pattern
 
-| File | Agent | Use when |
-|------|-------|----------|
-| `backend.md` | Kai (BE) | Server-side work — API, DB, auth, infra |
-| `frontend.md` | Nova (FE) | Client-side work — UI, components, styling |
-| `qa.md` | Sage (QA) | Testing, review, edge-case hunting |
+```bash
+# Single agent (foreground)
+cd /project && claude -p "$(cat _shared/briefs/kai-001.md)" \
+  --allowed-tools "Edit,Write,Read,Bash,Glob,Grep"
 
-ใช้ **Agent tool** เพื่อ spawn agents เสมอ  
-Brief ด้วย: (1) context, (2) files/contracts, (3) expected output, (4) verification gate
+# Parallel agents
+cd /project && claude -p "$(cat _shared/briefs/kai-001.md)" \
+  --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 & KAI=$!
+cd /project && claude -p "$(cat _shared/briefs/nova-001.md)" \
+  --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 & NOVA=$!
+wait $KAI && wait $NOVA
+
+# Or use scripts:
+bash scripts/run-agent.sh backend _shared/briefs/kai-001.md
+bash scripts/orchestrate-[task].sh
+```
+
+**Tool permissions:**
+- Kai / Nova: `Edit,Write,Read,Bash,Glob,Grep` — แก้ไขไฟล์ได้
+- Sage (QA): `Read,Bash,Glob,Grep` — read-only
+
+> ⚠️ ต้องใส่ `--allowed-tools` เสมอ มิฉะนั้น agent ขอ permission ทุก action
 
 ---
 

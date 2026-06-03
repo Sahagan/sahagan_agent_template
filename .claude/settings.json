@@ -5,6 +5,7 @@
       "Edit",
       "Write",
       "Bash(git *)",
+      "Bash(claude -p *)",
       "Bash(bash scripts/*)",
       "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/*)",
       "Bash(python3 .claude/skills/design/scripts/*)",
