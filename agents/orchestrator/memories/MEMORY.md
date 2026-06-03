@@ -11,10 +11,13 @@ One-line entries only. Max 200 lines. Read this at every session start.
 
 - [feedback-claude-cli-spawning](feedback-claude-cli-spawning.md) — ใช้ `claude -p` + `--allowed-tools` แทน Agent tool เพื่อให้ Pixel AGENTS เห็น session แยก
 - [feedback-workspace-architecture](feedback-workspace-architecture.md) — ARIA ใน agent-template แยกจาก project, workspace เห็นทั้งคู่ผ่าน absolute path
+- [feedback-vercel-deploy-pattern](feedback-vercel-deploy-pattern.md) — ใช้ `npx vercel --prod` จาก local เสมอ, อย่าพึ่ง GitHub-triggered deploy
+- [feedback-nextjs16-proxy](feedback-nextjs16-proxy.md) — Next.js 16 ใช้ `proxy.ts` แทน `middleware.ts` สำหรับ auth guard
 
 ## Project Context
 
-- [project-nuytoom-travel](project-nuytoom-travel.md) — Family Trip Planner, QA approved, รอ ANTHROPIC_API_KEY + deploy Vercel
+- [project-nuytoom-travel](project-nuytoom-travel.md) — Family Trip Planner, LIVE at nuytoom-travel.vercel.app
+- [project-guestly](project-guestly.md) — Guest management app, Next.js 16 + Supabase, foundation committed on develop
 
 ## User Preferences
 
