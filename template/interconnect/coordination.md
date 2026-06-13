@@ -9,6 +9,11 @@
 | ใต้ฝุ่น | QA Lead | Read,Bash,Glob,Grep | ❌ (read-only) |
 | ติ่มซำ | UX/UI Designer | Edit,Write,Read,Bash,Glob,Grep | ✅ (UI files) |
 
+## Spawn Rule
+
+**ใช้ Bash tool รัน `claude -p` เท่านั้น — ห้ามใช้ `Agent` tool ของ Claude Code**
+เหตุผล: `claude -p` สร้าง OS subprocess จริง ทำให้ PIXEL AGENTS extension monitor ได้
+
 ## Spawn Patterns
 
 ### Pattern 1: Single Agent
@@ -28,14 +33,14 @@ cd $PROJECT_PATH && claude -p "$(cat persona/dev-lead.md)
 " --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 &
 PHAYU_PID=$!
 
-# Agent 2 background  
+# Agent 2 background
 cd $PROJECT_PATH && claude -p "$(cat persona/uxui-designer.md)
 งาน: $FRONTEND_TASK
 " --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 &
 TIMSUM_PID=$!
 
-wait $PHAYU_PID
-wait $TIMSUM_PID
+wait $PHAYU_PID && echo "✅ พายุ done"
+wait $TIMSUM_PID && echo "✅ ติ่มซำ done"
 ```
 
 ### Pattern 3: Sequential with Review

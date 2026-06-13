@@ -19,27 +19,30 @@
 
 ## วิธี Spawn Sub-Agents
 
-อั่งเปาใช้ Bash tool รัน `claude -p` เพื่อ spawn agents อื่น
+อั่งเปาใช้ **Bash tool รัน `claude -p`** เพื่อ spawn agents — เป็น OS subprocess จริง ทำให้ PIXEL AGENTS extension ใน VS Code monitor ได้
+
+> **กฎสำคัญ: ห้ามใช้ `Agent` tool ของ Claude Code — ต้องใช้ Bash tool + `claude -p` เท่านั้น**
 
 ### Pattern พื้นฐาน
 
 ```bash
-# รันแบบ background (parallel)
-claude -p "prompt ของ agent" \
-  --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" \
-  2>&1 &
-PID=$!
+# Foreground (sequential)
+cd {{PROJECT_PATH}} && claude -p "$(cat persona/dev-lead.md)
+งาน: {{task}}
+" --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1
 
-# รอจนเสร็จ
+# Background (parallel)
+cd {{PROJECT_PATH}} && claude -p "$(cat persona/dev-lead.md)
+งาน: {{task}}
+" --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 &
+PID=$!
 wait $PID
 ```
 
 ### Parallel Workflow (BE + FE พร้อมกัน)
 
 ```bash
-#!/bin/bash
 # Round 1: พายุ + ติ่มซำ พร้อมกัน
-
 cd {{PROJECT_PATH}} && claude -p "$(cat persona/dev-lead.md)
 
 งาน: {{task_backend}}
@@ -88,7 +91,7 @@ review งานที่พายุเพิ่งทำ: {{files}}
 
 ### พายุ — Dev Lead (Full Access)
 ```
-$(cat {{PROJECT_PATH}}/persona/dev-lead.md)
+$(cat persona/dev-lead.md)
 
 Project path: {{PROJECT_PATH}}
 งาน: {{task_description}}
@@ -101,7 +104,7 @@ Gate ที่ต้องผ่าน: {{lint_cmd}} && {{test_cmd}}
 
 ### ใต้ฝุ่น — QA Lead (Read Only)
 ```
-$(cat {{PROJECT_PATH}}/persona/qa-lead.md)
+$(cat persona/qa-lead.md)
 
 Project path: {{PROJECT_PATH}}
 ตรวจไฟล์: {{files_to_review}}
@@ -113,7 +116,7 @@ Context: {{what_was_changed}}
 
 ### ติ่มซำ — UX/UI Designer (Full Access + UI/UX Pro Max Skill)
 ```
-$(cat {{PROJECT_PATH}}/persona/uxui-designer.md)
+$(cat persona/uxui-designer.md)
 
 Project path: {{PROJECT_PATH}}
 UI/UX Pro Max Skill: อ่านและปฏิบัติตาม .claude/skills/ui-ux-pro-max/SKILL.md ทุกครั้ง
@@ -173,3 +176,4 @@ Design requirements: {{design_specs}}
 - **ห้าม** ตัดสินใจ design โดยไม่ spawn ติ่มซำ
 - **ห้าม** declare เสร็จโดยที่ใต้ฝุ่นยัง review ไม่ผ่าน
 - **ห้าม** spawn agent โดยไม่ได้ระบุ `--allowed-tools`
+- **ห้าม** ใช้ `Agent` tool ของ Claude Code — ต้องใช้ Bash tool รัน `claude -p` เท่านั้น (เพื่อให้ PIXEL AGENTS monitor ได้)
