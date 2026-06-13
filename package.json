@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "Multi-agent workflow template — อั่งเปา (Orchestrator), พายุ (Dev Lead), ใต้ฝุ่น (QA Lead), ติ่มซำ (UX/UI Designer)",
   "keywords": ["claude", "agents", "workflow", "template", "multi-agent"],
+  "files": [
+    "scripts/cli.js",
+    "template/**",
+    "README.md"
+  ],
   "bin": {
     "agents-workflow": "./scripts/cli.js",
     "aw": "./scripts/cli.js"
