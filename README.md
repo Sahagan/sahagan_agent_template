@@ -151,7 +151,7 @@ Each agent is automatically equipped with skills from the most popular open-sour
 | Taifoon (QA) | `code-review-and-quality` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | ⭐ 62k |
 | Taifoon (QA) | `security-and-hardening` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | ⭐ 62k |
 | Phayu (Dev) | `ponytail` + `ponytail-review` + `ponytail-audit` | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) | ⭐ 36k |
-| Timsum (UX/UI) | `ui-ux-pro-max` | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | — |
+| Timsum (UX/UI) | `ui-ux-pro-max` | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | ⭐ 93k |
 
 Skills are injected into each agent's prompt at spawn time via `$(cat .claude/skills/<name>/SKILL.md)`.
 

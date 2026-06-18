@@ -436,7 +436,7 @@ function showHelp() {
   console.log('  Taifoon (QA)   code-review-and-quality       addyosmani/agent-skills ⭐62k')
   console.log('  Taifoon (QA)   security-and-hardening        addyosmani/agent-skills ⭐62k')
   console.log('  Phayu (Dev)    ponytail (+ review/audit)     DietrichGebert/ponytail ⭐36k')
-  console.log('  Timsum (UX)    ui-ux-pro-max                 nextlevelbuilder        ')
+  console.log('  Timsum (UX)    ui-ux-pro-max                 nextlevelbuilder        ⭐93k')
   console.log('')
   console.log(line)
   console.log('  EXAMPLES')
