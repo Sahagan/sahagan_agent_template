@@ -1,5 +1,7 @@
 # sahagan-agents-workflow 🐱
 
+[![npm version](https://img.shields.io/npm/v/sahagan-agents-workflow.svg)](https://www.npmjs.com/package/sahagan-agents-workflow) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![npm downloads](https://img.shields.io/npm/dm/sahagan-agents-workflow.svg)](https://www.npmjs.com/package/sahagan-agents-workflow)
+
 Multi-agent workflow template for **Claude Code** and **OpenAI Codex**.
 
 A family of four cat agents working together as a team:

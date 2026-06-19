@@ -29,5 +29,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Sahagan/sahagan_agent_template.git"
+  },
+  "homepage": "https://github.com/Sahagan/sahagan_agent_template#readme",
+  "bugs": {
+    "url": "https://github.com/Sahagan/sahagan_agent_template/issues"
   }
 }
