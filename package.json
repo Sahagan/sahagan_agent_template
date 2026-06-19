@@ -28,10 +28,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Sahagan/sahagan_agent_template.git"
+    "url": "git+https://github.com/Sahagan/sahagan-agents-workflow.git"
   },
-  "homepage": "https://github.com/Sahagan/sahagan_agent_template#readme",
+  "homepage": "https://github.com/Sahagan/sahagan-agents-workflow#readme",
   "bugs": {
-    "url": "https://github.com/Sahagan/sahagan_agent_template/issues"
+    "url": "https://github.com/Sahagan/sahagan-agents-workflow/issues"
   }
 }

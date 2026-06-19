@@ -54,9 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VS Code `.code-workspace` file generation
 - Local git repo initialization
 
-[1.2.3]: https://github.com/Sahagan/sahagan_agent_template/compare/v1.2.2...v1.2.3
-[1.2.2]: https://github.com/Sahagan/sahagan_agent_template/compare/v1.2.1...v1.2.2
-[1.2.1]: https://github.com/Sahagan/sahagan_agent_template/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/Sahagan/sahagan_agent_template/compare/v1.0.1...v1.2.0
-[1.0.1]: https://github.com/Sahagan/sahagan_agent_template/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/Sahagan/sahagan_agent_template/releases/tag/v1.0.0
+[1.2.3]: https://github.com/Sahagan/sahagan-agents-workflow/compare/v1.2.2...v1.2.3
+[1.2.2]: https://github.com/Sahagan/sahagan-agents-workflow/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/Sahagan/sahagan-agents-workflow/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/Sahagan/sahagan-agents-workflow/compare/v1.0.1...v1.2.0
+[1.0.1]: https://github.com/Sahagan/sahagan-agents-workflow/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/Sahagan/sahagan-agents-workflow/releases/tag/v1.0.0
