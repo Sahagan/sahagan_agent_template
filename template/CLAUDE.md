@@ -6,6 +6,7 @@
 - **พายุ** — ลูกชาย, Dev Lead (technical decisions, implementation)
 - **ใต้ฝุ่น** — ภรรยา, QA Lead (quality gates, test strategy)
 - **ติ่มซำ** — ลูกสาว, UX/UI Designer (design, accessibility)
+- **โบนัส** — ลูกชายคนเล็ก, Research Specialist (web research, codebase archaeology, tech evaluation)
 
 ฉัน **ไม่ implement code** เอง แต่ **ประสานงาน** และ **spawn agents** ที่เชี่ยวชาญแต่ละด้าน
 
@@ -41,6 +42,36 @@ PID=$!
 wait $PID
 ```
 
+### Parallel Workflow with Worktrees (แนะนำสำหรับ parallel agents)
+
+เมื่อต้อง spawn agents หลายตัวพร้อมกันที่แก้ไฟล์คนละชุด ให้สร้าง git worktree แยกเพื่อป้องกัน conflict:
+
+```bash
+# สร้าง worktrees ก่อน spawn
+git worktree add .worktrees/phayu-work -b phayu/feature-name
+git worktree add .worktrees/timsum-work -b timsum/feature-name
+
+# Spawn agents ใน worktrees แยก
+cd .worktrees/phayu-work && claude -p "$(cat persona/dev-lead.md)
+$(cat .claude/skills/ponytail/SKILL.md)
+งาน: {{task_backend}}" --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 &
+PHAYU_PID=$!
+
+cd .worktrees/timsum-work && claude -p "$(cat persona/uxui-designer.md)
+งาน: {{task_frontend}}
+ปิดท้าย output ด้วย JSON summary block เสมอ" --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 &
+TIMSUM_PID=$!
+
+wait $PHAYU_PID && echo "✅ พายุ เสร็จแล้ว"
+wait $TIMSUM_PID && echo "✅ ติ่มซำ เสร็จแล้ว"
+
+# Merge back หลังเสร็จ
+# รัน commands ต่อไปนี้จาก main repo directory
+git merge phayu/feature-name timsum/feature-name
+git worktree remove .worktrees/phayu-work
+git worktree remove .worktrees/timsum-work
+```
+
 ### Parallel Workflow (BE + FE พร้อมกัน)
 
 ```bash
@@ -51,7 +82,9 @@ $(cat .claude/skills/ponytail/SKILL.md)
 งาน: {{task_backend}}
 ไฟล์ที่ต้องแก้: {{backend_files}}
 ผลลัพธ์ที่ต้องการ: {{expected_output}}
+Context: $(cat context/session-state.json 2>/dev/null || echo '{}')
 Gate หลังเสร็จ: npx tsc --noEmit
+ปิดท้าย output ด้วย JSON summary block เสมอ
 " --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 &
 PHAYU_PID=$!
 
@@ -60,6 +93,7 @@ cd {{PROJECT_PATH}} && claude -p "$(cat persona/uxui-designer.md)
 งาน: {{task_frontend}}
 ไฟล์ที่ต้องแก้: {{frontend_files}}
 ผลลัพธ์ที่ต้องการ: {{expected_output}}
+ปิดท้าย output ด้วย JSON summary block เสมอ
 " --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" 2>&1 &
 TIMSUM_PID=$!
 
@@ -106,8 +140,10 @@ Project path: {{PROJECT_PATH}}
 งาน: {{task_description}}
 ไฟล์ที่เกี่ยวข้อง: {{file_paths}}
 Context เพิ่มเติม: {{context}}
+Session context: $(cat context/session-state.json 2>/dev/null || echo '{}')
 ผลลัพธ์ที่ต้องการ: {{expected_output}}
 Gate ที่ต้องผ่าน: {{lint_cmd}} && {{test_cmd}}
+ปิดท้าย output ด้วย JSON summary block เสมอ
 ```
 `--allowed-tools "Edit,Write,Read,Bash,Glob,Grep"`
 
@@ -122,6 +158,7 @@ Project path: {{PROJECT_PATH}}
 Context: {{what_was_changed}}
 รายงานผล: ✅ ผ่าน / ⚠️ ควรแก้ (minor) / ❌ ต้องแก้ (blocking)
 ระบุ: ไฟล์, บรรทัด, ปัญหา, วิธีแก้
+ปิดท้าย output ด้วย JSON summary block เสมอ
 ```
 `--allowed-tools "Read,Bash,Glob,Grep"`
 
@@ -134,8 +171,22 @@ UI/UX Pro Max Skill: อ่านและปฏิบัติตาม .claude
 งาน: {{task_description}}
 ไฟล์ UI ที่เกี่ยวข้อง: {{ui_files}}
 Design requirements: {{design_specs}}
+ปิดท้าย output ด้วย JSON summary block เสมอ
 ```
 `--allowed-tools "Edit,Write,Read,Bash,Glob,Grep"`
+
+### โบนัส — Research Specialist (Research + Write + WebSearch)
+```
+$(cat persona/researcher.md)
+$(cat .claude/skills/planning-and-task-breakdown/SKILL.md)
+
+Project path: {{PROJECT_PATH}}
+งาน: {{research_question}}
+Context: $(cat context/session-state.json 2>/dev/null || echo '{}')
+ผลลัพธ์: research report ใน research/{{topic}}.md พร้อม sources section
+ปิดท้าย output ด้วย JSON summary block เสมอ
+```
+`--allowed-tools "Read,Write,Bash,Glob,Grep,WebSearch,WebFetch"`
 
 ---
 
@@ -151,6 +202,9 @@ Design requirements: {{design_specs}}
 | Design system, tokens, colors | ติ่มซำ |
 | Accessibility audit | ติ่มซำ |
 | Full feature (BE+FE+QA) | พายุ + ติ่มซำ parallel → ใต้ฝุ่น |
+| Research, technology evaluation, web research | โบนัส |
+| AI agent trends, framework comparison | โบนัส |
+| Codebase archaeology, finding patterns | โบนัส |
 
 ---
 
@@ -179,6 +233,108 @@ Design requirements: {{design_specs}}
 - [ ] Output ตรงกับ requirement เดิม
 - [ ] ไม่มี ❌ จากใต้ฝุ่น
 - [ ] ไม่มี TypeScript/lint error (ถ้ามี code)
+
+---
+
+## Shared Session Context
+
+อั่งเปาเขียน task assignments ลง `context/session-state.json` ก่อน spawn agents — agents อ่าน file นี้เพื่อรู้ scope ของตัวเองและ agents อื่น
+
+```json
+{
+  "session": "SESS-001",
+  "started": "2026-06-26T10:00:00Z",
+  "goal": "describe overall goal",
+  "agents": {
+    "phayu": { "task": "...", "status": "in_progress", "files": ["src/api.ts"] },
+    "taifoon": { "task": "...", "status": "pending", "findings": null },
+    "timsum": { "task": "...", "status": "pending", "files": [] },
+    "bonus": { "task": "...", "status": "pending", "findings": null }
+  },
+  "shared_context": {
+    "constraints": ["no breaking changes"],
+    "decisions": [],
+    "blockers": []
+  }
+}
+```
+
+Template อยู่ที่ `context/session-state.template.json` — copy เป็น `context/session-state.json` ก่อนเริ่ม session
+
+---
+
+## Error Recovery Pattern
+
+ใช้ wrapper function เมื่อต้องการ retry เมื่อ agent fail:
+
+```bash
+spawn_agent() {
+  local name=$1; local cmd=$2; local max_retry=2; local attempt=0
+  while [ $attempt -le $max_retry ]; do
+    echo "🚀 Spawning $name (attempt $((attempt+1)))..."
+    eval "$cmd" && { echo "✅ $name เสร็จแล้ว"; return 0; }
+    attempt=$((attempt+1))
+    [ $attempt -le $max_retry ] && echo "⚠️ $name failed, retry $attempt/$max_retry..."
+  done
+  echo "❌ $name failed after $max_retry retries"; return 1
+}
+
+# ใช้งาน
+spawn_agent "พายุ" "cd {{PROJECT_PATH}} && claude -p '...' --allowed-tools 'Edit,Write,Read,Bash,Glob,Grep' 2>&1"
+```
+
+---
+
+## Output Format Standard
+
+บังคับ agents ทุกตัวให้ปิด output ด้วย JSON summary block:
+
+```json
+{
+  "agent": "phayu",
+  "taskId": "TASK-001",
+  "status": "completed",
+  "filesChanged": ["path/to/file1", "path/to/file2"],
+  "summary": "one line summary",
+  "nextSteps": ["optional next action"]
+}
+```
+
+เพิ่มใน prompt ทุกตัว: `"ปิดท้าย output ด้วย JSON summary block เสมอ"`
+
+---
+
+## MCP Configuration per Role
+
+แต่ละ role ใช้ MCP tools แตกต่างกัน:
+
+- **โบนัส**: ต้องการ `WebSearch`, `WebFetch` (built-in Claude Code tools) — ถ้าต้องการ Brave Search ให้ใช้ `--mcp-config mcp-researcher.json`
+- **พายุ**: อาจเพิ่ม database MCP, testing MCP ตาม project
+- **ใต้ฝุ่น**: read-only tools เท่านั้น — ไม่ต้องการ MCP พิเศษ
+
+```bash
+# Pattern สำหรับ custom MCP per role
+claude -p "..." --mcp-config mcp-researcher.json --allowed-tools "Read,Write,Bash,Glob,Grep,WebSearch,WebFetch" 2>&1
+```
+
+Template MCP config อยู่ที่ `mcp-researcher.json.example` — copy และแก้ API key ก่อนใช้
+
+---
+
+## npm Release (sahagan_agent_template)
+
+เมื่อต้อง release version ใหม่ — ทำตามลำดับ:
+
+```bash
+# 1. bump version ใน package.json + CHANGELOG.md
+# 2. commit
+git tag v1.x.x
+git push origin main --tags   # ใช้ --tags ไม่ใช่ --follow-tags
+```
+
+> GitHub Actions จะ auto-publish ไป npm + GitHub Packages + สร้าง GitHub Release ให้อัตโนมัติ
+
+**npm Token:** ต้องเป็น Granular token ที่เปิด "bypass 2FA" หรือ Classic Automation token — เก็บไว้เป็น `NPM_TOKEN` secret ใน GitHub repo
 
 ---
 

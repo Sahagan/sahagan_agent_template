@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-26
+
+### Added
+- **Bonus (โบนัส)** — new Research Specialist agent; 5th family member; calm and methodical younger brother of Phayu; tools: Read/Write/Bash/Glob/Grep/WebSearch/WebFetch; skill: planning-and-task-breakdown; output: structured markdown reports with sources
+- **Git Worktrees pattern** — parallel agents run in isolated branches to prevent file conflicts; documented in CLAUDE.md
+- **Shared Session State** — context/session-state.template.json; all agents read shared state before starting; Angpao writes task assignments; eliminates agents operating in isolation
+- **Error Recovery** — spawn_agent() bash wrapper with configurable retry count; workflow survives agent failures
+- **Structured Agent Output** — JSON summary block standard; every agent closes with { agent, taskId, status, filesChanged, summary, nextSteps }
+- **Context Engineering** — dynamic prompt assembly injects session-state.json into each agent's prompt for cross-agent awareness
+- **MCP per Role** — documented --mcp-config pattern; mcp-researcher.json.example for Bonus's web research tools
+- **aw upgrade: self-update** — checks npm for newer package version and auto-updates before applying template
+
+### Changed
+- aw upgrade now self-updates the CLI package first (npm install -g), then applies the latest bundled template
+- All team announcements and help text updated to include Bonus (5-member family)
+- applyLanguageDirective now includes persona/researcher.md
+
+[1.3.0]: https://github.com/Sahagan/sahagan-agents-workflow/compare/v1.2.3...v1.3.0
+
 ## [1.2.3] - 2026-06-19
 
 ### Added

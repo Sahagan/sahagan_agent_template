@@ -2,9 +2,9 @@
 
 [![npm version](https://img.shields.io/npm/v/sahagan-agents-workflow.svg)](https://www.npmjs.com/package/sahagan-agents-workflow) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![npm downloads](https://img.shields.io/npm/dm/sahagan-agents-workflow.svg)](https://www.npmjs.com/package/sahagan-agents-workflow)
 
-Multi-agent workflow template for **Claude Code** and **OpenAI Codex**.
+Multi-agent workflow template for **Claude Code** and **OpenAI Codex** — a family of five cat agents working together as a coordinated team.
 
-A family of four cat agents working together as a team:
+## The Family
 
 | Agent | Name | Role |
 |-------|------|------|
@@ -12,6 +12,7 @@ A family of four cat agents working together as a team:
 | Dev Lead | **Phayu** (พายุ) | Architecture, implementation, code review |
 | QA Lead | **Taifoon** (ใต้ฝุ่น) | Quality gate, test strategy, review |
 | UX/UI Designer | **Timsum** (ติ่มซำ) | UI design, design system, accessibility |
+| Research Specialist | **Bonus** (โบนัส) | Web research, planning breakdown, structured reports |
 
 ![PIXEL AGENTS — agents working in VS Code](.github/assets/pixel-agents-demo.png)
 *Agents visible in [PIXEL AGENTS](https://marketplace.visualstudio.com/items?itemName=sahagan.pixel-agents) VS Code extension — each sub-agent appears as a pixel character in your office layout*
@@ -22,6 +23,16 @@ A family of four cat agents working together as a team:
 
 ```bash
 npm install -g sahagan-agents-workflow
+```
+
+---
+
+## Quick Start
+
+```bash
+aw init my-app          # 1. Create workspace
+# 2. Open my-app.code-workspace in VS Code
+# 3. Run /session-start — Angpao is ready
 ```
 
 ---
@@ -64,14 +75,23 @@ aw upgrade                              # run from inside agents-workflow/
 aw upgrade D:\working\workspace-my-app  # or pass path to workspace
 ```
 
-**What it updates:**
+**What it does:**
+- **Checks npm for a newer package version and self-updates if available**
+- Backs up current `persona/`, `CLAUDE.md`, `AGENTS.md`
+- Overwrites template files with the latest bundled version
+- Copies `context/` templates and `mcp-researcher.json.example`
+- Re-installs all skills to their latest versions
+- Commits the upgrade with a descriptive message
+
 | Item | Action |
 |------|--------|
 | `persona/*.md` | ✅ Overwritten with latest |
 | `CLAUDE.md` / `AGENTS.md` | ✅ Overwritten with latest |
+| `context/` | ✅ Updated with latest templates |
 | All skills | ✅ Re-installed from GitHub (latest) |
 
 **What it preserves (user data):**
+
 | Item | Action |
 |------|--------|
 | `memories/` | 🔒 Never touched |
@@ -146,6 +166,165 @@ Use Claude Code in the IDE and Codex in the terminal simultaneously — both sha
 
 ---
 
+## How Agents Work
+
+Angpao is the orchestrator. When a task arrives, Angpao:
+
+1. Reads `context/session-state.json` for current project state
+2. Breaks the task down using `planning-and-task-breakdown`
+3. Spawns specialist agents as **real OS subprocesses** via `claude -p` or `codex`
+4. Collects JSON summary blocks from each agent
+5. Updates session state and task log
+
+Each spawned agent is a separate process — visible in your task manager and in the [PIXEL AGENTS](https://marketplace.visualstudio.com/items?itemName=sahagan.pixel-agents) VS Code extension as a pixel character in your office layout.
+
+---
+
+## Spawn Patterns
+
+Angpao orchestrates agents using the patterns below. All examples assume you're inside the `agents-workflow/` directory.
+
+### Basic Sequential (Phayu → Taifoon)
+
+```bash
+# Step 1: Phayu implements
+claude -p "$(cat persona/dev-lead.md)
+$(cat .claude/skills/ponytail/SKILL.md)
+Task: implement user auth" \
+  --allowed-tools "Edit,Write,Read,Bash,Glob,Grep"
+
+# Step 2: Taifoon reviews
+claude -p "$(cat persona/qa-lead.md)
+$(cat .claude/skills/code-review-and-quality/SKILL.md)
+$(cat .claude/skills/security-and-hardening/SKILL.md)
+Review: src/auth/" \
+  --allowed-tools "Read,Bash,Glob,Grep"
+```
+
+### Basic Parallel (Phayu + Timsum)
+
+```bash
+# Fire both simultaneously — independent tasks
+claude -p "$(cat persona/dev-lead.md)
+Task: build API endpoints" \
+  --allowed-tools "Edit,Write,Read,Bash,Glob,Grep" &
+
+claude -p "$(cat persona/uxui-designer.md)
+$(cat .claude/skills/ui-ux-pro-max/SKILL.md)
+Task: design login form" \
+  --allowed-tools "Edit,Write,Read,Bash" &
+
+wait
+```
+
+### Parallel with Git Worktrees (File Isolation)
+
+When parallel agents touch overlapping files, use git worktrees so each agent works on its own branch:
+
+```bash
+# Create isolated branches per agent
+git worktree add ../wt-phayu  -b feat/phayu-auth
+git worktree add ../wt-timsum -b feat/timsum-login-ui
+
+# Spawn agents in their own worktrees
+(cd ../wt-phayu  && claude -p "$(cat persona/dev-lead.md)
+Task: implement auth" --allowed-tools "Edit,Write,Read,Bash,Glob,Grep") &
+
+(cd ../wt-timsum && claude -p "$(cat persona/uxui-designer.md)
+Task: build login UI" --allowed-tools "Edit,Write,Read,Bash,Glob,Grep") &
+
+wait
+
+# Merge branches when done
+git merge feat/phayu-auth
+git merge feat/timsum-login-ui
+
+# Clean up worktrees
+git worktree remove ../wt-phayu
+git worktree remove ../wt-timsum
+```
+
+### Error Recovery (spawn_agent wrapper)
+
+```bash
+spawn_agent() {
+  local name="$1" prompt="$2" tools="$3" retries="${4:-2}"
+  for i in $(seq 1 $((retries + 1))); do
+    if claude -p "$prompt" --allowed-tools "$tools"; then
+      return 0
+    fi
+    echo "⚠️ $name failed (attempt $i/$((retries + 1))), retrying..."
+    sleep 2
+  done
+  echo "❌ $name failed after $((retries + 1)) attempts"
+  return 1
+}
+
+spawn_agent "Phayu" "$(cat persona/dev-lead.md)
+Task: refactor auth module" "Edit,Write,Read,Bash,Glob,Grep"
+```
+
+### Shared Session State
+
+All agents read a shared JSON file before starting so they have full context:
+
+```bash
+# Angpao writes task assignments
+cat > context/session-state.json << 'EOF'
+{
+  "session": "2026-06-26",
+  "task": "user authentication",
+  "assignments": {
+    "phayu": "implement JWT refresh rotation in src/auth/",
+    "taifoon": "review security of src/auth/ after Phayu is done",
+    "timsum": "design login form components in src/components/"
+  },
+  "sharedContext": {
+    "techStack": ["Next.js", "PostgreSQL", "Redis"],
+    "constraints": ["no new deps", "tests required"]
+  }
+}
+EOF
+
+# Inject session state into each agent's prompt
+STATE=$(cat context/session-state.json)
+claude -p "$(cat persona/dev-lead.md)
+Session state: $STATE
+Task: implement JWT refresh rotation" \
+  --allowed-tools "Edit,Write,Read,Bash,Glob,Grep"
+```
+
+### Bonus Research Spawn
+
+Bonus uses WebSearch and WebFetch to gather information before the team implements:
+
+```bash
+# Spawn Bonus with MCP web tools
+claude -p "$(cat persona/researcher.md)
+$(cat .claude/skills/planning-and-task-breakdown/SKILL.md)
+Research: best practices for JWT refresh token rotation in 2025.
+Return a structured markdown report with sources." \
+  --allowed-tools "Read,Write,WebSearch,WebFetch,Bash" \
+  --mcp-config mcp-researcher.json.example
+```
+
+### Structured Agent Output
+
+Every agent closes with a JSON summary block so Angpao can parse results:
+
+```json
+{
+  "agent": "phayu",
+  "taskId": "auth-001",
+  "status": "done",
+  "filesChanged": ["src/auth/jwt.ts", "src/auth/refresh.ts"],
+  "summary": "Implemented JWT refresh rotation with Redis-backed token store",
+  "nextSteps": ["taifoon: security review of src/auth/", "deploy to staging"]
+}
+```
+
+---
+
 ## Installed Skills
 
 Each agent is automatically equipped with skills from the most popular open-source skill repositories:
@@ -157,6 +336,7 @@ Each agent is automatically equipped with skills from the most popular open-sour
 | Taifoon (QA) | `security-and-hardening` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | ⭐ 62k |
 | Phayu (Dev) | `ponytail` + `ponytail-review` + `ponytail-audit` | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) | ⭐ 36k |
 | Timsum (UX/UI) | `ui-ux-pro-max` | [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | ⭐ 93k |
+| Bonus (Research) | `planning-and-task-breakdown` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | ⭐ 62k |
 
 Skills are injected into each agent's prompt at spawn time via `$(cat .claude/skills/<name>/SKILL.md)`.
 
@@ -174,40 +354,6 @@ Skills are injected into each agent's prompt at spawn time via `$(cat .claude/sk
 
 ---
 
-## How Agents Are Spawned
-
-Angpao spawns sub-agents as real OS subprocesses — visible to monitoring tools:
-
-**Claude Code:**
-```bash
-# Dev Lead (Phayu) — with Ponytail skill
-claude -p "$(cat persona/dev-lead.md)
-$(cat .claude/skills/ponytail/SKILL.md)
-Task: {{task}}" --allowed-tools "Edit,Write,Read,Bash,Glob,Grep"
-
-# QA Lead (Taifoon) — read-only with review + security skills
-claude -p "$(cat persona/qa-lead.md)
-$(cat .claude/skills/code-review-and-quality/SKILL.md)
-$(cat .claude/skills/security-and-hardening/SKILL.md)
-Review: {{files}}" --allowed-tools "Read,Bash,Glob,Grep"
-```
-
-**Codex:**
-```bash
-# Dev Lead
-codex --approval-mode full-auto "$(cat persona/dev-lead.md)
-$(cat .claude/skills/ponytail/SKILL.md)
-Task: {{task}}"
-
-# QA Lead — suggest mode prevents auto-apply
-codex --approval-mode suggest "$(cat persona/qa-lead.md)
-$(cat .claude/skills/code-review-and-quality/SKILL.md)
-$(cat .claude/skills/security-and-hardening/SKILL.md)
-Review: {{files}}"
-```
-
----
-
 ## Project Structure
 
 ```
@@ -221,7 +367,11 @@ workspace-my-app/
     │   ├── orchestrator.md
     │   ├── dev-lead.md              ← includes Ponytail skill reference
     │   ├── qa-lead.md               ← includes Review & Security skill references
-    │   └── uxui-designer.md
+    │   ├── uxui-designer.md
+    │   └── researcher.md            ← Bonus: web research + structured reports
+    ├── context/
+    │   └── session-state.template.json  ← shared state template for all agents
+    ├── mcp-researcher.json.example  ← MCP config for Bonus's web tools
     ├── .claude/
     │   └── skills/
     │       ├── planning-and-task-breakdown/

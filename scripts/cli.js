@@ -51,7 +51,7 @@ const MSGS = {
     creatingFiles: '📝 สร้าง project files...',
     wsFile:        '🗂️  สร้าง VS Code Workspace file...',
     wsFileDone:    '✅ Workspace file สร้างแล้ว',
-    teamReady:     '🐱 ทีม: อั่งเปา, พายุ, ใต้ฝุ่น, ติ่มซำ พร้อมทำงาน',
+    teamReady:     '🐱 ทีม: อั่งเปา, พายุ, โบนัส, ใต้ฝุ่น, ติ่มซำ พร้อมทำงาน',
     howToUse:      '💡 วิธีใช้งาน:',
     step1:         f => `   1. เปิด ${f} ใน VS Code`,
     step2: {
@@ -102,7 +102,7 @@ const MSGS = {
     creatingFiles: '📝 Creating project files...',
     wsFile:        '🗂️  Creating VS Code Workspace file...',
     wsFileDone:    '✅ Workspace file created',
-    teamReady:     '🐱 Team: Angpao, Phayu, Taifoon, Timsum are ready',
+    teamReady:     '🐱 Team: Angpao, Phayu, Bonus, Taifoon, Timsum are ready',
     howToUse:      '💡 How to use:',
     step1:         f => `   1. Open ${f} in VS Code`,
     step2: {
@@ -142,6 +142,16 @@ function run(cmd, cwd = '.', silent = false) {
   }
 }
 
+function getSelfVersion() {
+  try { return require('../package.json').version } catch { return null }
+}
+
+function getLatestNpmVersion(pkg) {
+  try {
+    return execSync(`npm view ${pkg} version`, { stdio: 'pipe', timeout: 8000 }).toString().trim()
+  } catch { return null }
+}
+
 function toolLabel(m, tool) {
   return { claude: m.toolClaude, codex: m.toolCodex, both: m.toolBoth }[tool]
 }
@@ -153,7 +163,7 @@ function applyLanguageDirective(dir, lang) {
     '> **Response Language: English** — Always respond to the user in English, ' +
     'regardless of the language used in these instruction files.\n\n'
 
-  for (const file of ['CLAUDE.md', 'AGENTS.md', 'persona/orchestrator.md', 'persona/dev-lead.md', 'persona/qa-lead.md', 'persona/uxui-designer.md']) {
+  for (const file of ['CLAUDE.md', 'AGENTS.md', 'persona/orchestrator.md', 'persona/dev-lead.md', 'persona/qa-lead.md', 'persona/uxui-designer.md', 'persona/researcher.md']) {
     const p = join(dir, file)
     if (!existsSync(p)) continue
     writeFileSync(p, directive + readFileSync(p, 'utf8'), 'utf8')
@@ -298,6 +308,18 @@ async function initProject(projectName, parentDir = '.') {
 // ─── upgrade ──────────────────────────────────────────────────────────────────
 
 async function upgradeWorkflow(targetPath = '.') {
+  // 0. Self-update check
+  const currentVer = getSelfVersion()
+  const latestVer  = getLatestNpmVersion('sahagan-agents-workflow')
+  if (latestVer && currentVer && latestVer !== currentVer) {
+    console.log(`📦 New version available: v${currentVer} → v${latestVer}`)
+    console.log('🔄 Updating sahagan-agents-workflow...')
+    run('npm install -g sahagan-agents-workflow@latest', '.', false)
+    console.log('✅ Package updated to v' + latestVer)
+  } else if (latestVer) {
+    console.log(`✅ Already on latest version (${latestVer})`)
+  }
+
   // 1. Language
   const rawLang = await ask(MSGS.th.langPrompt)
   const lang = rawLang.trim() === '2' ? 'en' : 'th'
@@ -340,6 +362,16 @@ async function upgradeWorkflow(targetPath = '.') {
   cpSync(join(TEMPLATE_SRC, 'persona'), join(workflowDir, 'persona'), { recursive: true })
   cpSync(join(TEMPLATE_SRC, 'CLAUDE.md'), join(workflowDir, 'CLAUDE.md'))
   cpSync(join(TEMPLATE_SRC, 'AGENTS.md'), join(workflowDir, 'AGENTS.md'))
+  // copy context/ template (new in v1.3.0)
+  const contextSrc = join(TEMPLATE_SRC, 'context')
+  const contextDst = join(workflowDir, 'context')
+  if (existsSync(contextSrc)) {
+    if (!existsSync(contextDst)) mkdirSync(contextDst, { recursive: true })
+    cpSync(contextSrc, contextDst, { recursive: true })
+  }
+  // copy mcp example
+  const mcpSrc = join(TEMPLATE_SRC, 'mcp-researcher.json.example')
+  if (existsSync(mcpSrc)) cpSync(mcpSrc, join(workflowDir, 'mcp-researcher.json.example'))
   console.log(m.upgradeFilesDone)
 
   // 6. Apply language directive
@@ -403,6 +435,7 @@ function showHelp() {
   console.log('  aw upgrade [agents-workflow-path]')
   console.log('    Upgrade an existing workspace to the latest template version.')
   console.log('    Prompts for language and AI tool, then:')
+  console.log('      • Checks npm for newer version and self-updates if available')
   console.log('      • Backs up current persona/, CLAUDE.md, AGENTS.md')
   console.log('      • Overwrites template files with latest bundled version')
   console.log('      • Re-installs all skills to their latest versions')
@@ -437,6 +470,7 @@ function showHelp() {
   console.log('  Taifoon (QA)   security-and-hardening        addyosmani/agent-skills ⭐62k')
   console.log('  Phayu (Dev)    ponytail (+ review/audit)     DietrichGebert/ponytail ⭐36k')
   console.log('  Timsum (UX)    ui-ux-pro-max                 nextlevelbuilder        ⭐93k')
+  console.log('  Bonus (Research)  planning-and-task-breakdown   addyosmani/agent-skills ⭐62k')
   console.log('')
   console.log(line)
   console.log('  EXAMPLES')

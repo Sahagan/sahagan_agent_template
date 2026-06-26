@@ -1,0 +1,17 @@
+{
+  "session": "SESS-XXX",
+  "started": "ISO-8601",
+  "project": "PROJECT_NAME",
+  "goal": "describe overall goal",
+  "agents": {
+    "phayu": { "task": null, "status": "idle", "files": [], "output": null },
+    "taifoon": { "task": null, "status": "idle", "files": [], "output": null },
+    "timsum": { "task": null, "status": "idle", "files": [], "output": null },
+    "bonus": { "task": null, "status": "idle", "findings": null, "sources": [] }
+  },
+  "shared_context": {
+    "constraints": [],
+    "decisions": [],
+    "blockers": []
+  }
+}
