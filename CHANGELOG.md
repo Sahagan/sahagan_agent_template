@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-06-26
+
+### Fixed
+- **Smart upgrade diff** — `aw upgrade` now walks the entire template directory and compares every file's content against the installed version, instead of overwriting a hardcoded list
+- `interconnect/coordination.md` and any future template files are now correctly detected and updated
+- Backup only contains files that actually changed (not a fixed set)
+- Final summary shows exactly which files were `+` added or `~` changed
+- Preserved user data is now explicit: `memories/`, `projects/`, `PROJECT.md`, `context/session-state.json`
+
+[1.3.3]: https://github.com/Sahagan/sahagan-agents-workflow/compare/v1.3.2...v1.3.3
+
 ## [1.3.2] - 2026-06-26
 
 ### Fixed

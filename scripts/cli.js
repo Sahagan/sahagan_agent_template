@@ -8,7 +8,7 @@
 
 const { execSync } = require('child_process')
 const { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync, cpSync, readdirSync } = require('fs')
-const { join, resolve } = require('path')
+const { join, resolve, dirname } = require('path')
 const readline = require('readline')
 const os = require('os')
 
@@ -64,7 +64,7 @@ const MSGS = {
     upgradeDetected:  d => `📁 พบ agents-workflow: ${d}`,
     upgradeBackup:    d => `💾 Backup ไฟล์เดิมไปที่: ${d}`,
     upgradeBackupDone:  '✅ Backup เสร็จแล้ว',
-    upgradeFiles:       '📄 อัปเดต template files (persona, CLAUDE.md, AGENTS.md)...',
+    upgradeFiles:       '📄 อัปเดต template files...',
     upgradeFilesDone:   '✅ Template files อัปเดตแล้ว',
     upgradeSkills:      '\n🔄 อัปเดต skills ทั้งหมด...',
     upgradeCommit:      '🔗 Commit การเปลี่ยนแปลง...',
@@ -115,7 +115,7 @@ const MSGS = {
     upgradeDetected:  d => `📁 Found agents-workflow: ${d}`,
     upgradeBackup:    d => `💾 Backing up existing files to: ${d}`,
     upgradeBackupDone:  '✅ Backup complete',
-    upgradeFiles:       '📄 Updating template files (persona, CLAUDE.md, AGENTS.md)...',
+    upgradeFiles:       '📄 Applying template updates...',
     upgradeFilesDone:   '✅ Template files updated',
     upgradeSkills:      '\n🔄 Updating all skills...',
     upgradeCommit:      '🔗 Committing changes...',
@@ -150,6 +150,27 @@ function getLatestNpmVersion(pkg) {
   try {
     return execSync(`npm view ${pkg} version`, { stdio: 'pipe', timeout: 8000 }).toString().trim()
   } catch { return null }
+}
+
+// User-created data that upgrade must never overwrite
+const USER_DATA_PREFIXES = ['memories', 'projects', '.upgrade-backup']
+const USER_DATA_FILES    = ['PROJECT.md', 'context/session-state.json']
+
+function isUserData(relPath) {
+  const norm = relPath.replace(/\\/g, '/')
+  return USER_DATA_PREFIXES.some(p => norm === p || norm.startsWith(p + '/')) ||
+         USER_DATA_FILES.includes(norm)
+}
+
+function collectTemplateFiles(srcDir, relDir = '') {
+  const results = []
+  for (const entry of readdirSync(srcDir, { withFileTypes: true })) {
+    const relPath = relDir ? `${relDir}/${entry.name}` : entry.name
+    const fullPath = join(srcDir, entry.name)
+    if (entry.isDirectory()) results.push(...collectTemplateFiles(fullPath, relPath))
+    else results.push({ relPath, fullPath })
+  }
+  return results
 }
 
 function toolLabel(m, tool) {
@@ -344,70 +365,96 @@ async function upgradeWorkflow(targetPath = '.') {
   const tool = n === '2' ? 'codex' : n === '3' ? 'both' : 'claude'
   const label = toolLabel(m, tool)
 
-  // 4. Backup files that will be overwritten
-  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  const backupDir = join(workflowDir, `.upgrade-backup-${ts}`)
-  mkdirSync(backupDir, { recursive: true })
-  console.log(m.upgradeBackup(backupDir))
-  for (const f of ['CLAUDE.md', 'AGENTS.md']) {
-    const src = join(workflowDir, f)
-    if (existsSync(src)) cpSync(src, join(backupDir, f))
-  }
-  const personaSrc = join(workflowDir, 'persona')
-  if (existsSync(personaSrc)) cpSync(personaSrc, join(backupDir, 'persona'), { recursive: true })
-  console.log(m.upgradeBackupDone)
+  // 4. Diff template vs installed — detect every changed/new file automatically
+  console.log('\n📊 Scanning template for changes...')
+  const templateFiles = collectTemplateFiles(TEMPLATE_SRC)
+  const toUpdate = []
 
-  // 5. Overwrite template files
-  console.log(m.upgradeFiles)
-  cpSync(join(TEMPLATE_SRC, 'persona'), join(workflowDir, 'persona'), { recursive: true })
-  cpSync(join(TEMPLATE_SRC, 'CLAUDE.md'), join(workflowDir, 'CLAUDE.md'))
-  cpSync(join(TEMPLATE_SRC, 'AGENTS.md'), join(workflowDir, 'AGENTS.md'))
-  // copy context/ template (new in v1.3.0)
-  const contextSrc = join(TEMPLATE_SRC, 'context')
-  const contextDst = join(workflowDir, 'context')
-  if (existsSync(contextSrc)) {
-    if (!existsSync(contextDst)) mkdirSync(contextDst, { recursive: true })
-    cpSync(contextSrc, contextDst, { recursive: true })
+  for (const { relPath, fullPath: srcPath } of templateFiles) {
+    if (isUserData(relPath)) continue
+    const dstPath = join(workflowDir, relPath)
+    if (!existsSync(dstPath)) {
+      toUpdate.push({ relPath, srcPath, dstPath, isNew: true })
+    } else {
+      const a = readFileSync(srcPath)
+      const b = readFileSync(dstPath)
+      if (!a.equals(b)) toUpdate.push({ relPath, srcPath, dstPath, isNew: false })
+    }
   }
-  // copy mcp example
-  const mcpSrc = join(TEMPLATE_SRC, 'mcp-researcher.json.example')
-  if (existsSync(mcpSrc)) cpSync(mcpSrc, join(workflowDir, 'mcp-researcher.json.example'))
-  console.log(m.upgradeFilesDone)
 
-  // 6. Apply language directive
+  const newFiles     = toUpdate.filter(f => f.isNew)
+  const changedFiles = toUpdate.filter(f => !f.isNew)
+
+  if (toUpdate.length === 0) {
+    console.log('   ✅ All template files are already up to date')
+  } else {
+    if (newFiles.length)     { console.log(`\n   New (${newFiles.length}):`);     newFiles.forEach(f => console.log(`     + ${f.relPath}`)) }
+    if (changedFiles.length) { console.log(`\n   Changed (${changedFiles.length}):`); changedFiles.forEach(f => console.log(`     ~ ${f.relPath}`)) }
+  }
+
+  // 5. Backup only the files that will actually change
+  let backupDir = null
+  if (changedFiles.length > 0) {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    backupDir = join(workflowDir, `.upgrade-backup-${ts}`)
+    mkdirSync(backupDir, { recursive: true })
+    console.log('\n' + m.upgradeBackup(backupDir))
+    for (const { relPath, dstPath } of changedFiles) {
+      const dest = join(backupDir, relPath)
+      mkdirSync(dirname(dest), { recursive: true })
+      cpSync(dstPath, dest)
+    }
+    console.log(m.upgradeBackupDone)
+  }
+
+  // 6. Apply all updates (changed + new)
+  if (toUpdate.length > 0) {
+    console.log('\n' + m.upgradeFiles)
+    for (const { srcPath, dstPath } of toUpdate) {
+      mkdirSync(dirname(dstPath), { recursive: true })
+      cpSync(srcPath, dstPath)
+    }
+    console.log(m.upgradeFilesDone)
+  }
+
+  // 7. Apply language directive
   applyLanguageDirective(workflowDir, lang)
 
-  // 7. Handle AI instruction files
+  // 8. Handle AI instruction files
   console.log(m.aiSetup(label))
   if (tool === 'claude' && existsSync(join(workflowDir, 'AGENTS.md'))) rmSync(join(workflowDir, 'AGENTS.md'))
   if (tool === 'codex'  && existsSync(join(workflowDir, 'CLAUDE.md'))) rmSync(join(workflowDir, 'CLAUDE.md'))
   console.log(m.aiReady(label))
 
-  // 8. Update all skills
+  // 9. Update all skills
   console.log(m.upgradeSkills)
   installSkills(workflowDir, m)
 
-  // 9. Git commit
+  // 10. Git commit
   console.log('\n' + m.upgradeCommit)
   run('git add .', workflowDir, true)
   run('git commit -m "upgrade: agents-workflow updated to latest template"', workflowDir, true)
 
-  // 10. Done
+  // 11. Done
   console.log('\n╔════════════════════════════════════════════════╗')
   console.log('║  ✅ Upgrade complete!')
   console.log('╚════════════════════════════════════════════════╝')
   console.log(`\n📁 ${workflowDir}`)
   console.log(`🤖 AI: ${label}`)
-  console.log(m.upgradeUpdated)
-  console.log('   ✅ persona/*.md')
-  console.log('   ✅ CLAUDE.md / AGENTS.md')
-  console.log('   ✅ skills (ponytail, ui-ux-pro-max, planning, code-review, security)')
+  if (toUpdate.length === 0) {
+    console.log('\n   ✅ Template already up to date — skills refreshed only')
+  } else {
+    console.log(m.upgradeUpdated)
+    newFiles.forEach(({ relPath }) => console.log(`   + ${relPath}`))
+    changedFiles.forEach(({ relPath }) => console.log(`   ~ ${relPath}`))
+    console.log('   ✅ skills (ponytail, ui-ux-pro-max, planning, code-review, security)')
+  }
   console.log(`\n${m.upgradeKept}`)
   console.log('   🔒 memories/')
-  console.log('   🔒 projects/task-log.jsonl')
+  console.log('   🔒 projects/')
   console.log('   🔒 PROJECT.md')
-  console.log('   🔒 interconnect/')
-  console.log(`\n💾 Backup: ${backupDir}`)
+  console.log('   🔒 context/session-state.json')
+  if (backupDir) console.log(`\n💾 Backup: ${backupDir}`)
 }
 
 // ─── help ─────────────────────────────────────────────────────────────────────
